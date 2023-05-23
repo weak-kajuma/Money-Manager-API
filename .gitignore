@@ -1,3 +1,4 @@
 account_key.json
-api/
 venv/
+.env
+__pycache__

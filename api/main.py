@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 
-from mockApi.routers import users, dealers, transactions
+from api.routers import users, dealers, transactions
 
 class RootResponse(BaseModel):
     message: str
