@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 import random
 import datetime
 
+from api.auth import get_user
 from api.schemas.transactions import Transaction, TransactionCreate, OneRankingResponse, TransactionType
 from api.db import mysql_connect
 
@@ -14,7 +15,7 @@ async def get_transactions(transaction_id: str):
         return Transaction(**cur.fetchone())
 
 @router.post("/transactions", response_model=Transaction)
-async def create_transactions(create_transaction: TransactionCreate):
+async def create_transactions(create_transaction: TransactionCreate, user = Depends(get_user)):
     with mysql_connect().cursor() as cur:
         cur.execute("SELECT having_money FROM users WHERE user_id = %s", (create_transaction.user_id,))
         having_money = cur.fetchone()["having_money"]
@@ -26,14 +27,16 @@ async def create_transactions(create_transaction: TransactionCreate):
     _transaction_id = format(random.randrange(2**16-1), '04x')
     with mysql_connect() as con:
         with con.cursor() as cur:
-            cur.execute("INSERT INTO transactions (transaction_id, user_id, dealer_id, amount, type) VALUES (%s, %s, %s, %s, %s)",
-                        (_transaction_id, create_transaction.user_id, create_transaction.dealer_id, create_transaction.amount, create_transaction.type.name))
+            cur.execute("INSERT INTO transactions (transaction_id, user_id, dealer_id, amount, type, detail, hide_detail) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                        (_transaction_id, create_transaction.user_id, create_transaction.dealer_id, create_transaction.amount, create_transaction.type.name, create_transaction.detail, create_transaction.hide_detail))
             # ここからユーザーの所持金計算
             now_money = having_money + create_transaction.amount \
-                if create_transaction.type == TransactionType.payout or create_transaction.type == TransactionType.other \
+                if create_transaction.type in [TransactionType.payout, TransactionType.gift, TransactionType.other] \
                 else having_money - create_transaction.amount
+            if now_money < 0:
+                raise HTTPException(status_code=402, detail="You do not have enough funds to complete the payment or the bet.")
             cur.execute("UPDATE users SET having_money = %s WHERE user_id = %s", (now_money, create_transaction.user_id))
-
+            
             con.commit()
             cur.execute("SELECT * FROM transactions WHERE transaction_id = %s", (_transaction_id,))
             return Transaction(**cur.fetchone())

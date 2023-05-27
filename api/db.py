@@ -1,7 +1,5 @@
 import pymysql
 import os
-from dotenv import load_dotenv
-load_dotenv()
 
 def mysql_connect():
     host=os.getenv("DB_HOST")
@@ -14,6 +12,14 @@ def init_database():
     with mysql_connect() as connect:
         with connect.cursor() as cur:
             cur.execute("CREATE TABLE IF NOT EXISTS users (user_id char(4) PRIMARY KEY, nickname varchar(10) default '名無しのギャンブラー' , having_money int default 3000);")
-            cur.execute("CREATE TABLE IF NOT EXISTS transactions (transaction_id char(4) PRIMARY KEY, user_id char(4) NOT NULL, dealer_id char(4) NOT NULL, amount int NOT NULL, type enum('bet', 'payout', 'payment', 'other') NOT NULL, timestamp datetime default (now()))")
+            cur.execute("CREATE TABLE IF NOT EXISTS transactions (transaction_id char(4) PRIMARY KEY, user_id char(4) NOT NULL, dealer_id char(4) NOT NULL, amount int NOT NULL, type enum('bet', 'payout', 'payment', 'gift', 'other') NOT NULL, detail varchar(32), hide_detail varchar(32), timestamp datetime default (now()))")
             cur.execute("CREATE TABLE IF NOT EXISTS dealers (dealer_id char(4) PRIMARY KEY, name varchar(10) NOT NULL, description varchar(32) NOT NULL, creator varchar(10) NOT NULL)")
         connect.commit()
+
+def destroy_db():
+    with mysql_connect() as con:
+        with con.cursor() as cur:
+            cur.execute("DROP TABLE users")
+            cur.execute("DROP TABLE transactions")
+            cur.execute("DROP TABLE dealers")
+            con.commit()

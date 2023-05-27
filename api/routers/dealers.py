@@ -1,13 +1,14 @@
 import pymysql
-from fastapi import APIRouter, HTTPException 
+from fastapi import APIRouter, Depends, HTTPException 
 import random
+from api.auth import get_user
 from api.db import mysql_connect
 from api.schemas.dealers import DealerCreate, Dealer
 
 router = APIRouter()
 
 @router.post("/dealers", response_model=Dealer)
-async def create_dealers(dealer_create: DealerCreate):
+async def create_dealers(dealer_create: DealerCreate, user = Depends(get_user)):
     _dealer_id = format(random.randrange(2**16-1), '04x')
     with mysql_connect() as con:
         with con.cursor() as cur:
@@ -34,7 +35,7 @@ async def get_dealer_info(dealer_id: str):
             return Dealer(**dealer)
 
 @router.put("/dealers/{dealer_id}", response_model=Dealer)
-async def update_dealers_info(dealer_id: str, dealer_update: DealerCreate):
+async def update_dealers_info(dealer_id: str, dealer_update: DealerCreate, user = Depends(get_user)):
     with mysql_connect() as con:
         with con.cursor() as cur:
             try:

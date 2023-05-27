@@ -1,8 +1,8 @@
 import pymysql
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 import random
-import datetime
 
+from api.auth import get_user
 from api.schemas.users import User, CreateUserResponse
 from api.schemas.transactions import Transaction
 from api.db import mysql_connect
@@ -10,7 +10,7 @@ from api.db import mysql_connect
 router = APIRouter()
 
 @router.post("/users", response_model=CreateUserResponse)
-async def create_user():
+async def create_user(user = Depends(get_user)):
     _user_id = format(random.randrange(2**16-1), '04x')
     with mysql_connect() as con:
         with con.cursor() as cur:
@@ -20,7 +20,7 @@ async def create_user():
             return CreateUserResponse(**cur.fetchone())
         
 @router.get("/users", response_model=list[CreateUserResponse])
-async def get_users():
+async def get_users(user = Depends(get_user)):
     with mysql_connect().cursor() as cur:
         cur.execute("SELECT * FROM users")
         return [CreateUserResponse(**user) for user in cur.fetchall()]
