@@ -2,8 +2,10 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Depends, HTTPException, status, Response
 from firebase_admin import auth, credentials
 import firebase_admin
+import json
+import os
 
-cred = credentials.Certificate('./account_key.json')
+cred = credentials.Certificate(json.loads(os.getenv("ACCOUNT_KEY")))
 firebase_admin.initialize_app(cred)
 
 def get_user(res: Response, cred: HTTPAuthorizationCredentials=Depends(HTTPBearer(auto_error=False))):
