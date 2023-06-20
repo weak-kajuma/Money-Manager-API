@@ -28,11 +28,11 @@ async def get_users(user = Depends(get_user)):
 @router.get("/users/{user_id}", response_model=User)
 async def get_user_info(user_id: str):
     with mysql_connect().cursor() as cur:
-        cur.execute("SELECT * FROM (SELECT user_id, nickname, having_money, @rank := @rank + 1 AS `rank` FROM users, (SELECT @rank := 0) r ORDER BY having_money DESC) AS subquery WHERE user_id = %s", (user_id,))
+        cur.execute("SELECT * FROM (SELECT user_id, nickname, having_money, ROW_NUMBER() OVER (ORDER BY having_money DESC) AS ranking FROM users) AS subquery WHERE user_id = %s", (user_id,))
         user_info = cur.fetchone()
         cur.execute("SELECT * FROM transactions WHERE user_id = %s", (user_id,))
         transactions = cur.fetchall()
-    return User(**user_info, transaction_history=[Transaction(**tn) for tn in transactions])
+    return User(**user_info, rank=user_info["ranking"], transaction_history=[Transaction(**tn) for tn in transactions])
 
 @router.put("/users/{user_id}/nickname", response_model=CreateUserResponse)
 async def update_name(user_id: str, nickname: str):
