@@ -2,10 +2,11 @@ import pymysql
 from fastapi import APIRouter, Depends, HTTPException
 import random
 
-from api.auth import get_user
-from api.schemas.users import User, CreateUserResponse
+from api.auth import get_user, get_user_from_token
+from api.schemas.users import User, CreateUserResponse, ShortUserResponse
 from api.schemas.transactions import Transaction
 from api.db import mysql_connect
+from api.auth import create_access_token
 
 router = APIRouter()
 
@@ -17,16 +18,18 @@ async def create_user(user = Depends(get_user)):
             cur.execute("INSERT INTO users (user_id) VALUES (%s)", (_user_id,))
             con.commit()
             cur.execute("SELECT * FROM users WHERE user_id = %s", (_user_id,))
-            return CreateUserResponse(**cur.fetchone())
+            return CreateUserResponse(**cur.fetchone(), token=create_access_token(data={"user_id": _user_id}))
         
-@router.get("/users", response_model=list[CreateUserResponse])
+@router.get("/users", response_model=list[ShortUserResponse])
 async def get_users(user = Depends(get_user)):
     with mysql_connect().cursor() as cur:
         cur.execute("SELECT * FROM users")
-        return [CreateUserResponse(**user) for user in cur.fetchall()]
+        return [ShortUserResponse(**user) for user in cur.fetchall()]
         
 @router.get("/users/{user_id}", response_model=User)
-async def get_user_info(user_id: str):
+async def get_user_info(user_id: str, tokened_userid = Depends(get_user_from_token)):
+    if not user_id == tokened_userid:
+        raise HTTPException(status_code=403, detail="Missing User on Token")
     with mysql_connect().cursor() as cur:
         cur.execute("SELECT * FROM (SELECT user_id, nickname, having_money, ROW_NUMBER() OVER (ORDER BY having_money DESC) AS ranking FROM users) AS subquery WHERE user_id = %s", (user_id,))
         user_info = cur.fetchone()
@@ -34,8 +37,10 @@ async def get_user_info(user_id: str):
         transactions = cur.fetchall()
     return User(**user_info, rank=user_info["ranking"], transaction_history=[Transaction(**tn) for tn in transactions])
 
-@router.put("/users/{user_id}/nickname", response_model=CreateUserResponse)
-async def update_name(user_id: str, nickname: str):
+@router.put("/users/{user_id}/nickname", response_model=ShortUserResponse)
+async def update_name(user_id: str, nickname: str, tokened_userid = Depends(get_user_from_token)):
+    if not user_id == tokened_userid:
+        raise HTTPException(status_code=403, detail="Missing User on Token")
     with mysql_connect() as con:
         with con.cursor() as cur:
             try:
@@ -48,4 +53,4 @@ async def update_name(user_id: str, nickname: str):
             user = cur.fetchone()
             if user is None:
                 raise HTTPException(status_code=404, detail="The User is Not Found") 
-            return CreateUserResponse(**user)
+            return ShortUserResponse(**user)

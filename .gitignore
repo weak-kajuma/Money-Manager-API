@@ -4,3 +4,4 @@ venv/
 __pycache__
 secret.yaml
 .gcloudignore
+users.yaml

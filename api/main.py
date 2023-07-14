@@ -22,11 +22,6 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# @app.get("/", response_model=RootResponse)
-# async def root(user = Depends(get_user)):
-#     print(user)
-#     return RootResponse(message=user["uid"])
-
 @app.delete("/destroy")
 async def destroy_database(user = Depends(get_user)):
     admin_user_mailaddress = json.loads(os.getenv("ADMIN_USER_MAILADDRESS"))

@@ -29,8 +29,17 @@ class TransactionCreate(BaseModel):
     detail: Optional[str] = Field(None, example="オッズ15倍 第一レース", description="倍率やレースの詳細など表示したいデータ")
     hide_detail: Optional[str] = Field(None, example="購入ID: 128", description="購入した商品のIDなど隠して保存しておきたいデータ")
 
+class OneTransactionsResponse(BaseModel):
+    transaction_id: str
+    amount: int
+    type: TransactionType
+    timestamp: datetime.datetime
+    user_id: str
+    nickname: str
+
 class OneRankingResponse(BaseModel):
     rank: int
     user_id: str = Field(None, example="9cf2", description="format(random.randrange(2**16-1), '04x')")
     nickname: str = Field(None, example="名無しのギャンブラー")
     having_money: int
+

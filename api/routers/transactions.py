@@ -3,16 +3,23 @@ import random
 import datetime
 
 from api.auth import get_user
-from api.schemas.transactions import Transaction, TransactionCreate, OneRankingResponse, TransactionType
+from api.schemas.transactions import OneTransactionsResponse, Transaction, TransactionCreate, OneRankingResponse, TransactionType
 from api.db import mysql_connect
 
 router = APIRouter()
 
 @router.get("/transactions/{transaction_id}", response_model=Transaction)
-async def get_transactions(transaction_id: str):
+async def get_transaction(transaction_id: str):
     with mysql_connect().cursor() as cur:
         cur.execute("SELECT * FROM transactions WHERE transaction_id = %s", (transaction_id,))
         return Transaction(**cur.fetchone())
+    
+@router.get("/transactions", response_model=list[OneTransactionsResponse])
+async def get_transactions_latest(limit: int = 4):
+    with mysql_connect().cursor() as cur:
+        cur.execute("SELECT transaction_id, amount, type, timestamp, users.user_id, nickname FROM transactions JOIN users ON transactions.user_id=users.user_id ORDER BY timestamp DESC LIMIT %s", (limit,))
+        return [OneTransactionsResponse(**ts) for ts in cur.fetchall()]
+
 
 @router.post("/transactions", response_model=Transaction)
 async def create_transactions(create_transaction: TransactionCreate, user = Depends(get_user)):
