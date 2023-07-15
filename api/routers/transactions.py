@@ -34,14 +34,14 @@ async def create_transactions(create_transaction: TransactionCreate, user = Depe
     _transaction_id = format(random.randrange(2**16-1), '04x')
     with mysql_connect() as con:
         with con.cursor() as cur:
-            cur.execute("INSERT INTO transactions (transaction_id, user_id, dealer_id, amount, type, detail, hide_detail) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                        (_transaction_id, create_transaction.user_id, create_transaction.dealer_id, create_transaction.amount, create_transaction.type.name, create_transaction.detail, create_transaction.hide_detail))
             # ここからユーザーの所持金計算
             now_money = having_money + create_transaction.amount \
                 if create_transaction.type in [TransactionType.payout, TransactionType.gift, TransactionType.other] \
                 else having_money - create_transaction.amount
             if now_money < 0:
                 raise HTTPException(status_code=402, detail="You do not have enough funds to complete the payment or the bet.")
+            cur.execute("INSERT INTO transactions (transaction_id, user_id, dealer_id, amount, type, detail, hide_detail) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                        (_transaction_id, create_transaction.user_id, create_transaction.dealer_id, create_transaction.amount, create_transaction.type.name, create_transaction.detail, create_transaction.hide_detail))
             cur.execute("UPDATE users SET having_money = %s WHERE user_id = %s", (now_money, create_transaction.user_id))
             
             con.commit()

@@ -5,3 +5,4 @@ __pycache__
 secret.yaml
 .gcloudignore
 users.yaml
+api.yaml
