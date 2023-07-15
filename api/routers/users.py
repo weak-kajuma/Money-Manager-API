@@ -27,9 +27,7 @@ async def get_users(user = Depends(get_user)):
         return [ShortUserResponse(**user) for user in cur.fetchall()]
         
 @router.get("/users/{user_id}", response_model=User)
-async def get_user_info(user_id: str, tokened_userid = Depends(get_user_from_token)):
-    if not user_id == tokened_userid:
-        raise HTTPException(status_code=403, detail="Missing User on Token")
+async def get_user_info(user_id: str):
     with mysql_connect().cursor() as cur:
         cur.execute("SELECT * FROM (SELECT user_id, nickname, having_money, ROW_NUMBER() OVER (ORDER BY having_money DESC) AS ranking FROM users) AS subquery WHERE user_id = %s", (user_id,))
         user_info = cur.fetchone()
