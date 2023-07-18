@@ -6,3 +6,4 @@ secret.yaml
 .gcloudignore
 users.yaml
 api.yaml
+.DS_Store
