@@ -1,0 +1,7 @@
+service: product
+runtime: python310
+instance_class: F1
+entrypoint: gunicorn api.main:app -w 1 -k uvicorn.workers.UvicornWorker
+
+includes:
+- secret.yaml

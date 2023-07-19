@@ -1,0 +1,35 @@
+name: deploy
+on: 
+  push:
+    branches:
+      - 'master'
+      - 'development'
+
+jobs:
+  deplay-staging:
+    name: GAE deplay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Copy product.app.yaml
+        if: github.ref == 'refs/heads/master'
+        run: |
+          cp product.app.yaml app.yaml
+          echo ${{ secrets.PRODUCT_SECRET }} | base64 -d > secret.yaml
+          
+
+      - name: Copy development.app.yaml
+        if: github.ref == 'refs/heads/development'
+        run: |
+          cp development.app.yaml app.yaml
+          echo ${{ secrets.DEVELOPMENT_SECRET }} | base64 -d > secret.yaml
+
+      - name: Deploy an App Engine app
+        id: deploy-app
+        uses: google-github-actions/deploy-appengine@v0.3.1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          deliverables: app.yaml
+          credentials: ${{ secrets.GCP_SA_KEY }}
+          version: v1
