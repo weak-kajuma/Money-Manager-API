@@ -31,6 +31,8 @@ async def get_user_info(user_id: str):
     with mysql_connect().cursor() as cur:
         cur.execute("SELECT * FROM (SELECT user_id, nickname, having_money, ROW_NUMBER() OVER (ORDER BY having_money DESC) AS ranking FROM users) AS subquery WHERE user_id = %s", (user_id,))
         user_info = cur.fetchone()
+        if user_info is None:
+            raise HTTPException(status_code=404, detail="The User is Not Found")  
         cur.execute("SELECT * FROM transactions WHERE user_id = %s", (user_id,))
         transactions = cur.fetchall()
     return User(**user_info, rank=user_info["ranking"], transaction_history=[Transaction(**tn) for tn in transactions])
