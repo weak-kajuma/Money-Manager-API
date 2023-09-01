@@ -25,9 +25,10 @@ async def get_transactions_latest(limit: int = 4):
 async def create_transactions(create_transaction: TransactionCreate, user = Depends(get_user)):
     with mysql_connect().cursor() as cur:
         cur.execute("SELECT having_money FROM users WHERE user_id = %s", (create_transaction.user_id,))
-        having_money = cur.fetchone()["having_money"]
-        if having_money is None:
-            raise HTTPException(status_code=404, detail="The User is Not Fount")
+        row = cur.fetchone()
+        if row is None or row["having_money"] is None:
+            raise HTTPException(status_code=404, detail="The User is Not Found")
+        having_money = row["having_money"]
         cur.execute("SELECT dealer_id FROM dealers WHERE dealer_id = %s", (create_transaction.dealer_id,))
         if cur.fetchone() is None:
             raise HTTPException(status_code=404, detail="The Dealer is Not Fount")
