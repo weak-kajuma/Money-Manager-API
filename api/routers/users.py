@@ -62,3 +62,16 @@ async def delete_user(user_id: str, user = Depends(get_user)):
             cur.execute("DELETE FROM users WHERE user_id = %s", (user_id))
         con.commit()
     raise HTTPException(status_code=204, detail="Success to Delete User")
+
+@router.put("/users/{user_id}/reset")
+async def reset_user(user_id: str, user = Depends(get_user)):
+    with mysql_connect as con:
+        with con.cursor() as cur:
+            cur.execute("SELECT user_id FROM users WHERE user_id = %s", (user_id))
+            if cur.fetchone() is None:
+                raise HTTPException(status_code=404, detail="The user is not found.")
+            cur.execute("DELETE FROM users WHERE user_id = %s", (user_id))
+            cur.execute("INSERT INTO users (user_id) VALUES (%s)", (user_id))
+            cur.execute("UPDATE users SET user_id = 'gggg' WHERE user_id = %s", (user_id))
+        con.commit()
+    raise HTTPException(status_code=204, detail="Success to Delete User")
