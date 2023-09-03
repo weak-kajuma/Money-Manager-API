@@ -12,7 +12,10 @@ async def create_dealers(dealer_create: DealerCreate, user = Depends(get_user)):
     _dealer_id = format(random.randrange(2**16-1), '04x')
     with mysql_connect() as con:
         with con.cursor() as cur:
-            cur.execute("INSERT INTO dealers (dealer_id, name, description, creator) VALUES (%s, %s, %s, %s)", (_dealer_id, dealer_create.name, dealer_create.description, dealer_create.creator))
+            try:
+                cur.execute("INSERT INTO dealers (dealer_id, name, description, creator) VALUES (%s, %s, %s, %s)", (_dealer_id, dealer_create.name, dealer_create.description, dealer_create.creator))
+            except pymysql.err.DataError:
+                raise HTTPException(status_code=400, detail="The name or description is too long. Under 10 or 32")
             con.commit()
             cur.execute("SELECT * FROM dealers WHERE dealer_id = %s", (_dealer_id))
         return Dealer(**cur.fetchone())
@@ -49,3 +52,11 @@ async def update_dealers_info(dealer_id: str, dealer_update: DealerCreate, user 
             if dealer is None:
                 raise HTTPException(status_code=404, detail="The Dealer is Not Found") 
             return Dealer(**dealer)
+
+@router.delete("/dealers/{dealer_id}")
+async def delete_dealer(dealer_id: str, user = Depends(get_user)):
+    with mysql_connect() as con:
+        with con.cursor() as cur:
+            cur.execute("DELETE FROM dealers WHERE dealer_id = %s", (dealer_id))
+        con.commit()
+    raise HTTPException(status_code=204, detail="Success to Delete Dealer")
