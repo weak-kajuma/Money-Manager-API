@@ -54,3 +54,11 @@ async def update_name(user_id: str, nickname: str, tokened_userid = Depends(get_
             if user is None:
                 raise HTTPException(status_code=404, detail="The User is Not Found") 
             return ShortUserResponse(**user)
+
+@router.delete("/users/{user_id}")
+async def delete_user(user_id: str, user = Depends(get_user)):
+    with mysql_connect() as con:
+        with con.cursor() as cur:
+            cur.execute("DELETE FROM users WHERE user_id = %s", (user_id))
+        con.commit()
+    raise HTTPException(status_code=204, detail="Success to Delete User")
