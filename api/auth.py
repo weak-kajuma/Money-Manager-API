@@ -53,7 +53,15 @@ def get_user_from_token(res: Response, cred: HTTPAuthorizationCredentials=Depend
         if user_id is None:
             raise credentials_exception
     except JWTError:
-        raise credentials_exception
+        try:
+            decoded_token = auth.verify_id_token(cred.credentials)
+        except Exception as err:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Invalid authentication credentials. {err}",
+                headers={'WWW-Authenticate': 'Bearer error="invalid_token"'},
+            )
+
     return user_id
 
     
