@@ -74,6 +74,6 @@ async def reset_user(user_id: str, user = Depends(get_user)):
                 raise HTTPException(status_code=404, detail="The user is not found.")
             cur.execute("DELETE FROM users WHERE user_id = %s", (user_id))
             cur.execute("INSERT INTO users (user_id) VALUES (%s)", (user_id))
-            cur.execute("UPDATE users SET user_id = 'gggg' WHERE user_id = %s", (user_id))
+            cur.execute("UPDATE transactions SET user_id = 'gggg' WHERE user_id = %s", (user_id))
         con.commit()
     raise HTTPException(status_code=204, detail="Success to Delete User")
