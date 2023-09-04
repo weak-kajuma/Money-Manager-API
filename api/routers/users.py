@@ -1,3 +1,5 @@
+import json
+import os
 import pymysql
 from fastapi import APIRouter, Depends, HTTPException
 import random
@@ -38,8 +40,8 @@ async def get_user_info(user_id: str):
     return User(**user_info, rank=user_info["ranking"], transaction_history=[Transaction(**tn) for tn in transactions])
 
 @router.put("/users/{user_id}/nickname", response_model=ShortUserResponse)
-async def update_name(user_id: str, nickname: str, tokened_userid = Depends(get_user_from_token)):
-    if not user_id == tokened_userid:
+async def update_name(user_id: str, nickname: str, token = Depends(get_user_from_token)):
+    if not (user_id == token.get("user_id") or token.get("aud") == json.loads(os.getenv("ACCOUNT_KEY"))["project_id"]):
         raise HTTPException(status_code=403, detail="Missing User on Token")
     with mysql_connect() as con:
         with con.cursor() as cur:
@@ -60,5 +62,18 @@ async def delete_user(user_id: str, user = Depends(get_user)):
     with mysql_connect() as con:
         with con.cursor() as cur:
             cur.execute("DELETE FROM users WHERE user_id = %s", (user_id))
+        con.commit()
+    raise HTTPException(status_code=204, detail="Success to Delete User")
+
+@router.put("/users/{user_id}/reset")
+async def reset_user(user_id: str, user = Depends(get_user)):
+    with mysql_connect() as con:
+        with con.cursor() as cur:
+            cur.execute("SELECT user_id FROM users WHERE user_id = %s", (user_id))
+            if cur.fetchone() is None:
+                raise HTTPException(status_code=404, detail="The user is not found.")
+            cur.execute("DELETE FROM users WHERE user_id = %s", (user_id))
+            cur.execute("INSERT INTO users (user_id) VALUES (%s)", (user_id))
+            cur.execute("UPDATE users SET user_id = 'gggg' WHERE user_id = %s", (user_id))
         con.commit()
     raise HTTPException(status_code=204, detail="Success to Delete User")
