@@ -50,7 +50,7 @@ async def create_transactions(create_transaction: TransactionCreate, user = Depe
             return Transaction(**cur.fetchone())
 
 @router.get("/rankings", response_model=list[OneRankingResponse])
-async def get_rankings():
+async def get_rankings(limit: str = 10):
     with mysql_connect().cursor() as cur:
-        cur.execute("SELECT * FROM (SELECT user_id, nickname, having_money, ROW_NUMBER() OVER (ORDER BY having_money DESC) AS ranking FROM users) AS subquery")
+        cur.execute(f"SELECT * FROM (SELECT user_id, nickname, having_money, ROW_NUMBER() OVER (ORDER BY having_money DESC) AS ranking FROM users) AS subquery LIMIT {limit}")
         return [OneRankingResponse(**user, rank=user["ranking"]) for user in cur.fetchall() if user["having_money"] > 3000]
