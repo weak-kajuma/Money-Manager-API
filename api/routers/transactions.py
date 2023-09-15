@@ -50,7 +50,15 @@ async def create_transactions(create_transaction: TransactionCreate, user = Depe
             return Transaction(**cur.fetchone())
 
 @router.get("/rankings", response_model=list[OneRankingResponse])
-async def get_rankings(limit: str = 10):
+async def get_rankings(limit: int = 10):
     with mysql_connect().cursor() as cur:
         cur.execute(f"SELECT * FROM (SELECT user_id, nickname, having_money, ROW_NUMBER() OVER (ORDER BY having_money DESC) AS ranking FROM users) AS subquery LIMIT {limit}")
         return [OneRankingResponse(**user, rank=user["ranking"]) for user in cur.fetchall() if user["having_money"] > 3000]
+    
+@router.get("/rankings/{times}", response_model=list[OneRankingResponse])
+async def get_rankings_limited_times(limit: int = 10, times: int = 5):
+    with mysql_connect().cursor() as cur:
+        cur.execute(f"SELECT * FROM (SELECT u.user_id, u.nickname, u.having_money, ROW_NUMBER() OVER (ORDER BY having_money DESC) AS ranking FROM users u LEFT JOIN ( SELECT user_id, COUNT(*) AS payout_count FROM transactions WHERE type = 'payout' GROUP BY user_id ) t ON u.user_id = t.user_id WHERE (t.payout_count >= 1 AND t.payout_count <= {times})) AS subquery LIMIT {limit};")
+        print(f"SELECT * FROM (SELECT u.user_id, u.nickname, u.having_money, ROW_NUMBER() OVER (ORDER BY having_money DESC) AS ranking FROM users u LEFT JOIN ( SELECT user_id, COUNT(*) AS payout_count FROM transactions WHERE type = 'payout' GROUP BY user_id ) t ON u.user_id = t.user_id WHERE (t.payout_count >= 1 AND t.payout_count <= {times})) AS subquery LIMIT {limit}")
+        return [OneRankingResponse(**user, rank=user["ranking"]) for user in cur.fetchall() if user["having_money"] > 3000]
+        
